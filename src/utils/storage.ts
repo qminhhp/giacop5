@@ -113,7 +113,12 @@ export const getMemberTotalScore = async (memberId: string, month?: string): Pro
       .eq('member_id', memberId);
     
     if (month) {
-      query = query.gte('date', `${month}-01`).lte('date', `${month}-31`);
+      // Calculate the last day of the month properly
+      const year = parseInt(month.split('-')[0]);
+      const monthNum = parseInt(month.split('-')[1]);
+      const lastDay = new Date(year, monthNum, 0).getDate();
+      
+      query = query.gte('date', `${month}-01`).lte('date', `${month}-${lastDay.toString().padStart(2, '0')}`);
     }
     
     const { data, error } = await query;
