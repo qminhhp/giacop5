@@ -2,13 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MEMBERS } from '@/types';
+import { MEMBERS, Member } from '@/types';
 import { getMemberTotalScore } from '@/utils/storage';
 import { createSlug } from '@/utils/slug';
+import { ActivityDetailsModal } from '@/components/ActivityDetailsModal';
 
 export default function Home() {
   const [memberScores, setMemberScores] = useState<{ [key: string]: number }>({});
   const [currentMonth, setCurrentMonth] = useState<string>('');
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const today = new Date();
@@ -60,6 +63,18 @@ export default function Home() {
     const today = new Date();
     const todayMonth = today.toISOString().substring(0, 7);
     return currentMonth === todayMonth;
+  };
+
+  const handlePointsClick = (e: React.MouseEvent, member: Member) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedMember(member);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedMember(null);
   };
 
   return (
@@ -138,17 +153,20 @@ export default function Home() {
                         </div>
                       </div>
                       <div className="flex-shrink-0 flex items-center space-x-2">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                          (memberScores[member.id] || 0) > 1500 
-                            ? 'bg-green-100 text-green-800' 
-                            : (memberScores[member.id] || 0) > 1000
-                            ? 'bg-blue-100 text-blue-800'
-                            : (memberScores[member.id] || 0) > 500
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
+                        <button
+                          onClick={(e) => handlePointsClick(e, member)}
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium hover:opacity-80 transition-opacity ${
+                            (memberScores[member.id] || 0) > 1500 
+                              ? 'bg-green-100 text-green-800' 
+                              : (memberScores[member.id] || 0) > 1000
+                              ? 'bg-blue-100 text-blue-800'
+                              : (memberScores[member.id] || 0) > 500
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
                           {memberScores[member.id] || 0}
-                        </span>
+                        </button>
                         <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                         </svg>
@@ -171,6 +189,14 @@ export default function Home() {
           </div>
         </div>
       </div>
+      
+      {selectedMember && (
+        <ActivityDetailsModal
+          member={selectedMember}
+          isOpen={isModalOpen}
+          onClose={closeModal}
+        />
+      )}
     </div>
   );
 }

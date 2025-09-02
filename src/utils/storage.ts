@@ -106,6 +106,32 @@ export const getMemberScore = async (memberId: string, date: string): Promise<Me
 };
 
 
+export const getMemberActivities = async (memberId: string): Promise<MemberScore[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('scores')
+      .select('*')
+      .eq('member_id', memberId)
+      .order('date', { ascending: false });
+    
+    if (error) throw error;
+    
+    return data.map(score => ({
+      memberId: score.member_id,
+      date: score.date,
+      activities: score.activities,
+      totalPoints: score.total_points
+    }));
+  } catch (error) {
+    console.error('Error fetching member activities:', error);
+    // Fallback to localStorage
+    const scores = await getLocalScores();
+    return scores
+      .filter(s => s.memberId === memberId)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+};
+
 export const getMemberTotalScore = async (memberId: string, month?: string): Promise<number> => {
   try {
     let query = supabase
