@@ -10,6 +10,6 @@ export function createSlug(text: string): string {
     .replace(/-+/g, '-'); // Replace multiple hyphens with single
 }
 
-export function findMemberBySlug(slug: string, members: any[]) {
+export function findMemberBySlug(slug: string, members: { id: string; name: string }[]) {
   return members.find(member => createSlug(member.name) === slug);
 }

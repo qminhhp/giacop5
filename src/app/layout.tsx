@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from '@/contexts/AuthContext';
+import { AuthWrapper } from '@/components/AuthWrapper';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -34,7 +36,11 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Thi Đua Thánh Đồ" />
       </head>
       <body className={`${inter.className} antialiased bg-gray-50`}>
-        {children}
+        <AuthProvider>
+          <AuthWrapper>
+            {children}
+          </AuthWrapper>
+        </AuthProvider>
       </body>
     </html>
   );

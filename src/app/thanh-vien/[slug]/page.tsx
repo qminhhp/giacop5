@@ -7,33 +7,14 @@ import { MEMBERS, SCORING_ACTIVITIES, MemberScore } from '@/types';
 import { getMemberScore, saveScore, formatDate } from '@/utils/storage';
 import { findMemberBySlug } from '@/utils/slug';
 
-const PASSWORD = 'gc5ctcm';
-const PASSWORD_EXPIRY = 30 * 60 * 1000; // 30 minutes in milliseconds
-
 export default function MemberScoring() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
   
-  const [member, setMember] = useState(() => findMemberBySlug(slug, MEMBERS));
+  const [member] = useState(() => findMemberBySlug(slug, MEMBERS));
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [activities, setActivities] = useState<{ [key: string]: number | boolean }>({});
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedAuth = sessionStorage.getItem('auth');
-      if (savedAuth) {
-        const { timestamp } = JSON.parse(savedAuth);
-        const now = Date.now();
-        if (now - timestamp < PASSWORD_EXPIRY) {
-          return true;
-        } else {
-          sessionStorage.removeItem('auth');
-        }
-      }
-    }
-    return false;
-  });
-  const [password, setPassword] = useState('');
   const [totalPoints, setTotalPoints] = useState(0);
 
   useEffect(() => {
@@ -114,18 +95,6 @@ export default function MemberScoring() {
     loadScoreForDate(date);
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password === PASSWORD) {
-      setIsAuthenticated(true);
-      // Save authentication with timestamp
-      sessionStorage.setItem('auth', JSON.stringify({
-        timestamp: Date.now()
-      }));
-    } else {
-      alert('Mật khẩu không đúng!');
-    }
-  };
 
   const handleSave = async () => {
     if (!member || !selectedDate) return;
@@ -152,40 +121,6 @@ export default function MemberScoring() {
         <div className="text-center">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Không tìm thấy thành viên</h2>
           <Link href="/" className="text-blue-600 hover:underline">
-            Quay lại trang chủ
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
-            Nhập điểm: {member.name}
-          </h2>
-          <p className="text-center text-gray-600 mb-6">Nhập mật khẩu để tiếp tục</p>
-          <form onSubmit={handlePasswordSubmit}>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Nhập mật khẩu..."
-              className="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
-            />
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              Xác nhận
-            </button>
-          </form>
-          <Link 
-            href="/"
-            className="block text-center text-blue-600 mt-4 hover:underline"
-          >
             Quay lại trang chủ
           </Link>
         </div>
