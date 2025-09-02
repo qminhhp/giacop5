@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MEMBERS, SCORING_ACTIVITIES, MemberScore } from '@/types';
-import { getMemberScore, saveScore, formatDate, getMonthlyEvangelismStats } from '@/utils/storage';
+import { getMemberScore, saveScore, formatDate } from '@/utils/storage';
 import { findMemberBySlug } from '@/utils/slug';
 
 export default function MemberScoring() {
@@ -16,11 +16,6 @@ export default function MemberScoring() {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [activities, setActivities] = useState<{ [key: string]: number | boolean }>({});
   const [totalPoints, setTotalPoints] = useState(0);
-  const [evangelismStats, setEvangelismStats] = useState<{
-    month: number;
-    pure: number;
-    effective: number;
-  }[]>([]);
 
   useEffect(() => {
     if (!member) {
@@ -33,7 +28,6 @@ export default function MemberScoring() {
     setSelectedDate(todayStr);
     
     loadScoreForDate(todayStr);
-    loadEvangelismStats();
   }, [member, router]);
 
   useEffect(() => {
@@ -96,17 +90,6 @@ export default function MemberScoring() {
     }));
   };
 
-  const loadEvangelismStats = async () => {
-    if (!member) return;
-    try {
-      const currentYear = new Date().getFullYear();
-      const stats = await getMonthlyEvangelismStats(member.id, currentYear);
-      setEvangelismStats(stats);
-    } catch (error) {
-      console.error('Error loading evangelism stats:', error);
-    }
-  };
-
   const handleDateChange = (date: string) => {
     setSelectedDate(date);
     loadScoreForDate(date);
@@ -125,10 +108,6 @@ export default function MemberScoring() {
 
     try {
       await saveScore(score);
-      // Reload evangelism stats if evangelism activities were updated
-      if (activities.pure || activities.effective) {
-        await loadEvangelismStats();
-      }
       alert('Đã lưu điểm thành công!');
     } catch (error) {
       console.error('Error saving score:', error);
@@ -284,51 +263,6 @@ export default function MemberScoring() {
               ))}
             </div>
 
-            {/* Evangelism Results Table */}
-            <div className="mt-6 bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">KẾT QUẢ TRUYỀN ĐẠO ({new Date().getFullYear()})</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm border-collapse border border-gray-300">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border border-gray-300 p-2 text-left font-semibold"></th>
-                      {Array.from({ length: 6 }, (_, i) => (
-                        <th key={i + 1} className="border border-gray-300 p-2 text-center font-semibold">
-                          Tháng {i + 1}
-                        </th>
-                      ))}
-                      <th className="border border-gray-300 p-2 text-center font-semibold bg-blue-100">
-                        TỔNG
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="border border-gray-300 p-2 font-semibold bg-gray-50">ĐƠN THUẦN</td>
-                      {evangelismStats.slice(0, 6).map((stat, i) => (
-                        <td key={i} className="border border-gray-300 p-2 text-center">
-                          {stat.pure || ''}
-                        </td>
-                      ))}
-                      <td className="border border-gray-300 p-2 text-center font-bold bg-blue-50">
-                        {evangelismStats.slice(0, 6).reduce((sum, stat) => sum + stat.pure, 0) || 0}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="border border-gray-300 p-2 font-semibold bg-gray-50">HỮU HIỆU</td>
-                      {evangelismStats.slice(0, 6).map((stat, i) => (
-                        <td key={i} className="border border-gray-300 p-2 text-center">
-                          {stat.effective || ''}
-                        </td>
-                      ))}
-                      <td className="border border-gray-300 p-2 text-center font-bold bg-blue-50">
-                        {evangelismStats.slice(0, 6).reduce((sum, stat) => sum + stat.effective, 0) || 0}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
           </div>
 
           <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">

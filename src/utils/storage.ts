@@ -105,68 +105,6 @@ export const getMemberScore = async (memberId: string, date: string): Promise<Me
   }
 };
 
-export const getMonthlyEvangelismStats = async (memberId: string, year: number): Promise<{
-  month: number;
-  pure: number;
-  effective: number;
-}[]> => {
-  try {
-    const startDate = `${year}-01-01`;
-    const endDate = `${year}-12-31`;
-    
-    const { data, error } = await supabase
-      .from('scores')
-      .select('date, activities')
-      .eq('member_id', memberId)
-      .gte('date', startDate)
-      .lte('date', endDate);
-    
-    if (error) throw error;
-    
-    const monthlyStats = Array.from({ length: 12 }, (_, i) => ({
-      month: i + 1,
-      pure: 0,
-      effective: 0
-    }));
-    
-    data.forEach(score => {
-      const month = parseInt(score.date.split('-')[1]);
-      const activities = score.activities;
-      
-      if (activities.pure) {
-        monthlyStats[month - 1].pure += activities.pure;
-      }
-      if (activities.effective) {
-        monthlyStats[month - 1].effective += activities.effective;
-      }
-    });
-    
-    return monthlyStats;
-  } catch (error) {
-    console.error('Error fetching evangelism stats:', error);
-    // Fallback to localStorage
-    const scores = await getLocalScores();
-    const monthlyStats = Array.from({ length: 12 }, (_, i) => ({
-      month: i + 1,
-      pure: 0,
-      effective: 0
-    }));
-    
-    scores
-      .filter(s => s.memberId === memberId && s.date.startsWith(year.toString()))
-      .forEach(score => {
-        const month = parseInt(score.date.split('-')[1]);
-        if (score.activities.pure) {
-          monthlyStats[month - 1].pure += score.activities.pure as number;
-        }
-        if (score.activities.effective) {
-          monthlyStats[month - 1].effective += score.activities.effective as number;
-        }
-      });
-    
-    return monthlyStats;
-  }
-};
 
 export const getMemberTotalScore = async (memberId: string, month?: string): Promise<number> => {
   try {
