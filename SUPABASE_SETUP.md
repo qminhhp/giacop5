@@ -34,8 +34,8 @@
 ## Environment Variables đã cấu hình:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://yqfeqkiukpgpevloqype.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+NEXT_PUBLIC_SUPABASE_URL=https://scxmxttkzaqticgklgmr.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjeG14dHRremFxdGljZ2tsZ21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MjI5ODcsImV4cCI6MjA3MjM5ODk4N30.AAKj8dWFaxmHNpAKcex0RsZgAt8DdwpYk2Bb4wP3Kyw
 ```
 
 ## Database Schema:
