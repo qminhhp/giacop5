@@ -1,103 +1,167 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { MEMBERS } from '@/types';
+import { getMemberTotalScore } from '@/utils/storage';
+import { createSlug } from '@/utils/slug';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [memberScores, setMemberScores] = useState<{ [key: string]: number }>({});
+  const [currentMonth, setCurrentMonth] = useState<string>('');
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const today = new Date();
+    const monthStr = today.toISOString().substring(0, 7);
+    setCurrentMonth(monthStr);
+    loadScoresForMonth(monthStr);
+  }, []);
+
+  const loadScoresForMonth = (monthStr: string) => {
+    const scores: { [key: string]: number } = {};
+    MEMBERS.forEach(member => {
+      scores[member.id] = getMemberTotalScore(member.id, monthStr);
+    });
+    setMemberScores(scores);
+  };
+
+  const handleMonthChange = (monthStr: string) => {
+    setCurrentMonth(monthStr);
+    loadScoresForMonth(monthStr);
+  };
+
+  const getCurrentMonthName = () => {
+    const [year, month] = currentMonth.split('-');
+    return `Tháng ${parseInt(month)}/${year}`;
+  };
+
+  const getPreviousMonth = () => {
+    const date = new Date(currentMonth + '-01');
+    date.setMonth(date.getMonth() - 1);
+    return date.toISOString().substring(0, 7);
+  };
+
+  const getNextMonth = () => {
+    const date = new Date(currentMonth + '-01');
+    date.setMonth(date.getMonth() + 1);
+    return date.toISOString().substring(0, 7);
+  };
+
+  const isCurrentMonth = () => {
+    const today = new Date();
+    const todayMonth = today.toISOString().substring(0, 7);
+    return currentMonth === todayMonth;
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="safe-area-inset">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white shadow-sm">
+            <div className="p-4 bg-blue-600 text-white">
+              <div className="flex items-center justify-between mb-3">
+                <h1 className="text-lg sm:text-xl font-semibold">
+                  Bảng Thi Đua Thánh Đồ
+                </h1>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => handleMonthChange(getPreviousMonth())}
+                  className="p-2 hover:bg-blue-700 rounded-full transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                
+                <div className="text-center">
+                  <p className="text-lg font-medium">
+                    {getCurrentMonthName()}
+                  </p>
+                  <p className="text-blue-100 text-sm">
+                    {MEMBERS.length} thành viên
+                  </p>
+                </div>
+                
+                <button
+                  onClick={() => handleMonthChange(getNextMonth())}
+                  disabled={isCurrentMonth()}
+                  className={`p-2 rounded-full transition-colors ${
+                    isCurrentMonth() 
+                      ? 'text-blue-300 cursor-not-allowed' 
+                      : 'hover:bg-blue-700'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div className="divide-y divide-gray-200">
+              {MEMBERS
+                .sort((a, b) => (memberScores[b.id] || 0) - (memberScores[a.id] || 0))
+                .map((member, index) => (
+                  <Link 
+                    key={member.id}
+                    href={`/thanh-vien/${createSlug(member.name)}`}
+                    className="block hover:bg-gray-50 transition-colors active:bg-gray-100"
+                  >
+                    <div className="flex items-center justify-between p-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                            index === 0
+                              ? 'bg-yellow-100 text-yellow-800 ring-2 ring-yellow-400' 
+                              : index < 3 
+                              ? 'bg-yellow-50 text-yellow-700' 
+                              : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {index + 1}
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {member.name}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0 flex items-center space-x-2">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                          (memberScores[member.id] || 0) > 1500 
+                            ? 'bg-green-100 text-green-800' 
+                            : (memberScores[member.id] || 0) > 1000
+                            ? 'bg-blue-100 text-blue-800'
+                            : (memberScores[member.id] || 0) > 500
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {memberScores[member.id] || 0}
+                        </span>
+                        <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+            </div>
+            
+            <div className="p-4 bg-gray-50 border-t">
+              <div className="flex justify-between items-center text-xs text-gray-500">
+                <span>
+                  {isCurrentMonth() ? 'Tháng hiện tại' : 'Xem tháng trước'}
+                </span>
+                <span>
+                  Cập nhật: {new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
 }
