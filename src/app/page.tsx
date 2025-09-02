@@ -17,11 +17,20 @@ export default function Home() {
     loadScoresForMonth(monthStr);
   }, []);
 
-  const loadScoresForMonth = (monthStr: string) => {
+  const loadScoresForMonth = async (monthStr: string) => {
     const scores: { [key: string]: number } = {};
-    MEMBERS.forEach(member => {
-      scores[member.id] = getMemberTotalScore(member.id, monthStr);
+    
+    // Load scores for all members in parallel
+    const scorePromises = MEMBERS.map(async (member) => {
+      const score = await getMemberTotalScore(member.id, monthStr);
+      return { memberId: member.id, score };
     });
+    
+    const results = await Promise.all(scorePromises);
+    results.forEach(({ memberId, score }) => {
+      scores[memberId] = score;
+    });
+    
     setMemberScores(scores);
   };
 

@@ -53,10 +53,10 @@ export default function MemberScoring() {
     calculateTotalPoints();
   }, [activities]);
 
-  const loadScoreForDate = (date: string) => {
+  const loadScoreForDate = async (date: string) => {
     if (!member) return;
     
-    const existingScore = getMemberScore(member.id, date);
+    const existingScore = await getMemberScore(member.id, date);
     if (existingScore) {
       setActivities(existingScore.activities);
     } else {
@@ -127,7 +127,7 @@ export default function MemberScoring() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!member || !selectedDate) return;
 
     const score: MemberScore = {
@@ -137,8 +137,13 @@ export default function MemberScoring() {
       totalPoints
     };
 
-    saveScore(score);
-    alert('Đã lưu điểm thành công!');
+    try {
+      await saveScore(score);
+      alert('Đã lưu điểm thành công!');
+    } catch (error) {
+      console.error('Error saving score:', error);
+      alert('Có lỗi xảy ra khi lưu điểm. Dữ liệu đã được lưu offline.');
+    }
   };
 
   if (!member) {
