@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MEMBERS, SCORING_ACTIVITIES } from '@/types';
-import { getMemberScore, saveScore, formatDate } from '@/utils/storage';
+import { getMemberScore, saveScore, formatDate, getMemberActivities } from '@/utils/storage';
 import { findMemberBySlug } from '@/utils/slug';
 
 export default function MemberScoring() {
@@ -16,6 +16,31 @@ export default function MemberScoring() {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [activities, setActivities] = useState<{ [key: string]: number | boolean | { morning: boolean; evening: boolean } }>({});
   const [totalPoints, setTotalPoints] = useState(0);
+  const [monthlyActivitiesCompleted, setMonthlyActivitiesCompleted] = useState<Set<string>>(new Set());
+
+  const checkMonthlyActivities = useCallback(async (date: string) => {
+    if (!member) return;
+    
+    const monthStr = date.substring(0, 7); // Get YYYY-MM format
+    const allActivities = await getMemberActivities(member.id);
+    
+    // Filter activities for the current month
+    const monthlyActivities = allActivities.filter(score => 
+      score.date.startsWith(monthStr)
+    );
+    
+    const completedSet = new Set<string>();
+    monthlyActivities.forEach(score => {
+      Object.entries(score.activities).forEach(([activityId, value]) => {
+        const activity = SCORING_ACTIVITIES.find(a => a.id === activityId && a.monthlyOnly);
+        if (activity && value === true) {
+          completedSet.add(activityId);
+        }
+      });
+    });
+    
+    setMonthlyActivitiesCompleted(completedSet);
+  }, [member]);
 
   const loadScoreForDate = useCallback(async (date: string) => {
     if (!member) return;
@@ -38,7 +63,10 @@ export default function MemberScoring() {
       });
       setActivities(defaultActivities);
     }
-  }, [member]);
+    
+    // Check monthly activities
+    await checkMonthlyActivities(date);
+  }, [member, checkMonthlyActivities]);
 
   const calculateTotalPoints = useCallback(() => {
     let total = 0;
@@ -82,6 +110,12 @@ export default function MemberScoring() {
   const handleActivityChange = async (activityId: string, value: number | boolean | { morning: boolean; evening: boolean }) => {
     const activity = SCORING_ACTIVITIES.find(a => a.id === activityId);
     if (!activity) return;
+
+    // Check if monthly activity is already completed
+    if (activity.monthlyOnly && monthlyActivitiesCompleted.has(activityId) && value === true) {
+      alert('Hoạt động này đã được hoàn thành trong tháng này!');
+      return;
+    }
 
     if (activity.weekdaysOnly && selectedDate) {
       const date = new Date(selectedDate);
@@ -129,6 +163,10 @@ export default function MemberScoring() {
 
       try {
         await saveScore(score);
+        // Refresh monthly activities check if this was a monthly activity
+        if (activity.monthlyOnly) {
+          await checkMonthlyActivities(selectedDate);
+        }
       } catch (error) {
         console.error('Auto-save error:', error);
       }
@@ -210,13 +248,23 @@ export default function MemberScoring() {
 
                   <div>
                     {activity.type === 'checkbox' && (
-                      <label className="flex items-center cursor-pointer p-2 rounded-lg hover:bg-gray-50">
+                      <label className={`flex items-center p-2 rounded-lg ${
+                        activity.monthlyOnly && monthlyActivitiesCompleted.has(activity.id) 
+                          ? 'cursor-not-allowed opacity-50' 
+                          : 'cursor-pointer hover:bg-gray-50'
+                      }`}>
                         <input
                           type="checkbox"
                           checked={!!activities[activity.id]}
+                          disabled={activity.monthlyOnly && monthlyActivitiesCompleted.has(activity.id)}
                           onChange={(e) => handleActivityChange(activity.id, e.target.checked)}
                         />
-                        <span className="ml-3 text-sm text-gray-700 font-medium">Hoàn thành</span>
+                        <span className="ml-3 text-sm text-gray-700 font-medium">
+                          {activity.monthlyOnly && monthlyActivitiesCompleted.has(activity.id) 
+                            ? 'Đã hoàn thành trong tháng này' 
+                            : 'Hoàn thành'
+                          }
+                        </span>
                       </label>
                     )}
 
