@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { MEMBERS, SCORING_ACTIVITIES, MemberScore } from '@/types';
 import { getMemberScore, saveScore, formatDate } from '@/utils/storage';
 import { findMemberBySlug } from '@/utils/slug';
+import { PrayerCard } from '@/components/PrayerCard';
 
 export default function MemberScoring() {
   const params = useParams();
@@ -14,7 +15,7 @@ export default function MemberScoring() {
   
   const [member] = useState(() => findMemberBySlug(slug, MEMBERS));
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [activities, setActivities] = useState<{ [key: string]: number | boolean }>({});
+  const [activities, setActivities] = useState<{ [key: string]: number | boolean | { morning: boolean; evening: boolean } }>({});
   const [totalPoints, setTotalPoints] = useState(0);
 
   useEffect(() => {
@@ -41,10 +42,12 @@ export default function MemberScoring() {
     if (existingScore) {
       setActivities(existingScore.activities);
     } else {
-      const defaultActivities: { [key: string]: number | boolean } = {};
+      const defaultActivities: { [key: string]: number | boolean | { morning: boolean; evening: boolean } } = {};
       SCORING_ACTIVITIES.forEach(activity => {
-        if (activity.type === 'checkbox' || activity.type === 'checkbox_double') {
+        if (activity.type === 'checkbox') {
           defaultActivities[activity.id] = false;
+        } else if (activity.type === 'checkbox_double') {
+          defaultActivities[activity.id] = { morning: false, evening: false };
         } else if (activity.type === 'radio') {
           defaultActivities[activity.id] = 0;
         } else {
@@ -59,7 +62,12 @@ export default function MemberScoring() {
     let total = 0;
     SCORING_ACTIVITIES.forEach(activity => {
       const value = activities[activity.id];
-      if (typeof value === 'boolean' && value) {
+      if (typeof value === 'object' && value !== null && 'morning' in value && 'evening' in value) {
+        // Handle dual-checkbox format
+        const dualValue = value as { morning: boolean; evening: boolean };
+        if (dualValue.morning) total += activity.points;
+        if (dualValue.evening) total += activity.points;
+      } else if (typeof value === 'boolean' && value) {
         if (activity.type === 'checkbox_double') {
           total += activity.points * 2;
         } else {
@@ -72,7 +80,7 @@ export default function MemberScoring() {
     setTotalPoints(total);
   };
 
-  const handleActivityChange = (activityId: string, value: number | boolean) => {
+  const handleActivityChange = (activityId: string, value: number | boolean | { morning: boolean; evening: boolean }) => {
     const activity = SCORING_ACTIVITIES.find(a => a.id === activityId);
     if (!activity) return;
 
@@ -194,14 +202,38 @@ export default function MemberScoring() {
                     )}
 
                     {activity.type === 'checkbox_double' && (
-                      <label className="flex items-center cursor-pointer p-2 rounded-lg hover:bg-gray-50">
-                        <input
-                          type="checkbox"
-                          checked={!!activities[activity.id]}
-                          onChange={(e) => handleActivityChange(activity.id, e.target.checked)}
-                        />
-                        <span className="ml-3 text-sm text-gray-700 font-medium">Sáng và chiều</span>
-                      </label>
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            id={`prayer-morning-${activity.id}`}
+                            checked={!!(activities[activity.id] as { morning: boolean; evening: boolean })?.morning}
+                            onChange={(e) => {
+                              const current = activities[activity.id] as { morning: boolean; evening: boolean } || { morning: false, evening: false };
+                              handleActivityChange(activity.id, { ...current, morning: e.target.checked });
+                            }}
+                            className="w-6 h-6"
+                          />
+                          <label htmlFor={`prayer-morning-${activity.id}`} className="text-gray-700 text-sm">
+                            Tích sáng ({activity.points} điểm)
+                          </label>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            id={`prayer-evening-${activity.id}`}
+                            checked={!!(activities[activity.id] as { morning: boolean; evening: boolean })?.evening}
+                            onChange={(e) => {
+                              const current = activities[activity.id] as { morning: boolean; evening: boolean } || { morning: false, evening: false };
+                              handleActivityChange(activity.id, { ...current, evening: e.target.checked });
+                            }}
+                            className="w-6 h-6"
+                          />
+                          <label htmlFor={`prayer-evening-${activity.id}`} className="text-gray-700 text-sm">
+                            Tích chiều ({activity.points} điểm)
+                          </label>
+                        </div>
+                      </div>
                     )}
 
                     {activity.type === 'number' && (
