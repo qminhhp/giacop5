@@ -16,6 +16,32 @@ export default function MemberScoring() {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [activities, setActivities] = useState<{ [key: string]: number | boolean | { morning: boolean; evening: boolean } }>({});
   const [totalPoints, setTotalPoints] = useState(0);
+  const [monthlyActivitiesCompleted, setMonthlyActivitiesCompleted] = useState<Set<string>>(new Set());
+
+  const loadMonthlyActivitiesCompleted = useCallback(async (date: string) => {
+    if (!member) return;
+    
+    const currentDate = new Date(date);
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const completed = new Set<string>();
+    
+    // Check each day of the current month for completed monthly activities
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const checkDate = formatDate(new Date(year, month, day));
+      const score = await getMemberScore(member.id, checkDate);
+      if (score) {
+        SCORING_ACTIVITIES.forEach(activity => {
+          if (activity.monthlyOnly && score.activities[activity.id]) {
+            completed.add(activity.id);
+          }
+        });
+      }
+    }
+    
+    setMonthlyActivitiesCompleted(completed);
+  }, [member]);
 
   const loadScoreForDate = useCallback(async (date: string) => {
     if (!member) return;
@@ -38,7 +64,10 @@ export default function MemberScoring() {
       });
       setActivities(defaultActivities);
     }
-  }, [member]);
+    
+    // Load monthly activities status
+    await loadMonthlyActivitiesCompleted(date);
+  }, [member, loadMonthlyActivitiesCompleted]);
 
   const calculateTotalPoints = useCallback(() => {
     let total = 0;
@@ -129,6 +158,11 @@ export default function MemberScoring() {
 
       try {
         await saveScore(score);
+        
+        // If this is a monthly activity, refresh the monthly activities completed status
+        if (activity && activity.monthlyOnly) {
+          await loadMonthlyActivitiesCompleted(selectedDate);
+        }
       } catch (error) {
         console.error('Auto-save error:', error);
       }
