@@ -215,7 +215,7 @@ export default function MemberScoring() {
                             className="w-6 h-6"
                           />
                           <label htmlFor={`prayer-morning-${activity.id}`} className="text-gray-700 text-sm">
-                            Tích sáng ({activity.points} điểm)
+                            Sáng ({activity.points} điểm)
                           </label>
                         </div>
                         <div className="flex items-center space-x-3">
@@ -230,7 +230,7 @@ export default function MemberScoring() {
                             className="w-6 h-6"
                           />
                           <label htmlFor={`prayer-evening-${activity.id}`} className="text-gray-700 text-sm">
-                            Tích chiều ({activity.points} điểm)
+                            Chiều ({activity.points} điểm)
                           </label>
                         </div>
                       </div>

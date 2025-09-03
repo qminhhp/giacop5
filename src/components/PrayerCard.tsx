@@ -90,7 +90,7 @@ export const PrayerCard: React.FC<PrayerCardProps> = ({
                 className="w-6 h-6"
               />
               <label htmlFor={`prayer-morning-${title}`} className="text-gray-700 text-sm">
-                Tích sáng (10 điểm)
+                Sáng (10 điểm)
               </label>
             </div>
             <div className="flex items-center space-x-3">
@@ -102,7 +102,7 @@ export const PrayerCard: React.FC<PrayerCardProps> = ({
                 className="w-6 h-6"
               />
               <label htmlFor={`prayer-evening-${title}`} className="text-gray-700 text-sm">
-                Tích chiều (10 điểm)
+                Chiều (10 điểm)
               </label>
             </div>
           </div>

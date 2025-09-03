@@ -7,6 +7,7 @@ const PASSWORD_EXPIRY = 30 * 60 * 1000; // 30 minutes in milliseconds
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  isHydrated: boolean;
   login: (password: string) => boolean;
   logout: () => void;
 }
@@ -22,21 +23,23 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const savedAuth = sessionStorage.getItem('site_auth');
-      if (savedAuth) {
-        const { timestamp } = JSON.parse(savedAuth);
-        const now = Date.now();
-        if (now - timestamp < PASSWORD_EXPIRY) {
-          return true;
-        } else {
-          sessionStorage.removeItem('site_auth');
-        }
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Check authentication status on client-side hydration
+  useEffect(() => {
+    const savedAuth = sessionStorage.getItem('site_auth');
+    if (savedAuth) {
+      const { timestamp } = JSON.parse(savedAuth);
+      const now = Date.now();
+      if (now - timestamp < PASSWORD_EXPIRY) {
+        setIsAuthenticated(true);
+      } else {
+        sessionStorage.removeItem('site_auth');
       }
     }
-    return false;
-  });
+    setIsHydrated(true);
+  }, []);
 
   const login = (password: string): boolean => {
     if (password === PASSWORD) {
@@ -77,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isAuthenticated]);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isHydrated, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
