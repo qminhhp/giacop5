@@ -80,7 +80,7 @@ export default function MemberScoring() {
     setTotalPoints(total);
   };
 
-  const handleActivityChange = (activityId: string, value: number | boolean | { morning: boolean; evening: boolean }) => {
+  const handleActivityChange = async (activityId: string, value: number | boolean | { morning: boolean; evening: boolean }) => {
     const activity = SCORING_ACTIVITIES.find(a => a.id === activityId);
     if (!activity) return;
 
@@ -92,10 +92,48 @@ export default function MemberScoring() {
       }
     }
 
-    setActivities(prev => ({
-      ...prev,
+    // Update activities state
+    const newActivities = {
+      ...activities,
       [activityId]: value
-    }));
+    };
+    
+    setActivities(newActivities);
+
+    // Calculate new total points
+    let newTotal = 0;
+    SCORING_ACTIVITIES.forEach(act => {
+      const actValue = activityId === act.id ? value : activities[act.id];
+      if (typeof actValue === 'object' && actValue !== null && 'morning' in actValue && 'evening' in actValue) {
+        const dualValue = actValue as { morning: boolean; evening: boolean };
+        if (dualValue.morning) newTotal += act.points;
+        if (dualValue.evening) newTotal += act.points;
+      } else if (typeof actValue === 'boolean' && actValue) {
+        if (act.type === 'checkbox_double') {
+          newTotal += act.points * 2;
+        } else {
+          newTotal += act.points;
+        }
+      } else if (typeof actValue === 'number' && actValue > 0) {
+        newTotal += act.points * actValue;
+      }
+    });
+
+    // Auto-save immediately
+    if (member && selectedDate) {
+      const score = {
+        memberId: member.id,
+        date: selectedDate,
+        activities: newActivities,
+        totalPoints: newTotal
+      };
+
+      try {
+        await saveScore(score);
+      } catch (error) {
+        console.error('Auto-save error:', error);
+      }
+    }
   };
 
   const handleDateChange = (date: string) => {
@@ -104,24 +142,6 @@ export default function MemberScoring() {
   };
 
 
-  const handleSave = async () => {
-    if (!member || !selectedDate) return;
-
-    const score: MemberScore = {
-      memberId: member.id,
-      date: selectedDate,
-      activities,
-      totalPoints
-    };
-
-    try {
-      await saveScore(score);
-      alert('Đã lưu điểm thành công!');
-    } catch (error) {
-      console.error('Error saving score:', error);
-      alert('Có lỗi xảy ra khi lưu điểm. Dữ liệu đã được lưu offline.');
-    }
-  };
 
   if (!member) {
     return (
@@ -297,18 +317,13 @@ export default function MemberScoring() {
 
           </div>
 
-          <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="text-lg font-semibold text-gray-900">
-                Tổng điểm: <span className="text-blue-600">{totalPoints}</span>
-              </div>
+          <div className="p-4 bg-gray-50 border-t">
+            <div className="text-center text-lg font-semibold text-gray-900">
+              Tổng điểm: <span className="text-blue-600">{totalPoints}</span>
             </div>
-            <button
-              onClick={handleSave}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors active:bg-blue-800"
-            >
-              Lưu điểm
-            </button>
+            <p className="text-center text-sm text-gray-500 mt-2">
+              Điểm được tự động lưu khi thay đổi
+            </p>
           </div>
         </div>
       </div>
