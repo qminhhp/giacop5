@@ -18,7 +18,7 @@ export interface ScoringActivity {
 export interface MemberScore {
   memberId: string;
   date: string;
-  activities: { [activityId: string]: number | boolean };
+  activities: { [activityId: string]: number | boolean | { morning: boolean; evening: boolean } };
   totalPoints: number;
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MemberScore, SCORING_ACTIVITIES, Member } from '@/types';
 import { getMemberActivities } from '@/utils/storage';
 
@@ -18,13 +18,7 @@ export const ActivityDetailsModal: React.FC<ActivityDetailsModalProps> = ({
   const [activities, setActivities] = useState<MemberScore[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && member) {
-      loadActivities();
-    }
-  }, [isOpen, member]);
-
-  const loadActivities = async () => {
+  const loadActivities = useCallback(async () => {
     setLoading(true);
     try {
       const memberActivities = await getMemberActivities(member.id);
@@ -34,16 +28,30 @@ export const ActivityDetailsModal: React.FC<ActivityDetailsModalProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [member.id]);
+
+  useEffect(() => {
+    if (isOpen && member) {
+      loadActivities();
+    }
+  }, [isOpen, member, loadActivities]);
 
   const getActivityName = (activityId: string) => {
     const activity = SCORING_ACTIVITIES.find(a => a.id === activityId);
     return activity?.name || activityId;
   };
 
-  const formatActivityValue = (activityId: string, value: number | boolean) => {
+  const formatActivityValue = (activityId: string, value: number | boolean | { morning: boolean; evening: boolean }) => {
     const activity = SCORING_ACTIVITIES.find(a => a.id === activityId);
     if (!activity) return String(value);
+    
+    if (typeof value === 'object' && value !== null && 'morning' in value && 'evening' in value) {
+      const dualValue = value as { morning: boolean; evening: boolean };
+      const parts = [];
+      if (dualValue.morning) parts.push('Sáng');
+      if (dualValue.evening) parts.push('Chiều');
+      return parts.length > 0 ? parts.join(', ') : '';
+    }
     
     if (typeof value === 'boolean') {
       return value ? 'Có' : '';

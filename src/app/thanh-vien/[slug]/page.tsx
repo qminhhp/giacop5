@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MEMBERS, SCORING_ACTIVITIES, MemberScore } from '@/types';
+import { MEMBERS, SCORING_ACTIVITIES } from '@/types';
 import { getMemberScore, saveScore, formatDate } from '@/utils/storage';
 import { findMemberBySlug } from '@/utils/slug';
-import { PrayerCard } from '@/components/PrayerCard';
 
 export default function MemberScoring() {
   const params = useParams();
@@ -18,24 +17,7 @@ export default function MemberScoring() {
   const [activities, setActivities] = useState<{ [key: string]: number | boolean | { morning: boolean; evening: boolean } }>({});
   const [totalPoints, setTotalPoints] = useState(0);
 
-  useEffect(() => {
-    if (!member) {
-      router.push('/');
-      return;
-    }
-    
-    const today = new Date();
-    const todayStr = formatDate(today);
-    setSelectedDate(todayStr);
-    
-    loadScoreForDate(todayStr);
-  }, [member, router]);
-
-  useEffect(() => {
-    calculateTotalPoints();
-  }, [activities]);
-
-  const loadScoreForDate = async (date: string) => {
+  const loadScoreForDate = useCallback(async (date: string) => {
     if (!member) return;
     
     const existingScore = await getMemberScore(member.id, date);
@@ -56,9 +38,9 @@ export default function MemberScoring() {
       });
       setActivities(defaultActivities);
     }
-  };
+  }, [member]);
 
-  const calculateTotalPoints = () => {
+  const calculateTotalPoints = useCallback(() => {
     let total = 0;
     SCORING_ACTIVITIES.forEach(activity => {
       const value = activities[activity.id];
@@ -78,7 +60,24 @@ export default function MemberScoring() {
       }
     });
     setTotalPoints(total);
-  };
+  }, [activities]);
+
+  useEffect(() => {
+    if (!member) {
+      router.push('/');
+      return;
+    }
+    
+    const today = new Date();
+    const todayStr = formatDate(today);
+    setSelectedDate(todayStr);
+    
+    loadScoreForDate(todayStr);
+  }, [member, router, loadScoreForDate]);
+
+  useEffect(() => {
+    calculateTotalPoints();
+  }, [activities, calculateTotalPoints]);
 
   const handleActivityChange = async (activityId: string, value: number | boolean | { morning: boolean; evening: boolean }) => {
     const activity = SCORING_ACTIVITIES.find(a => a.id === activityId);
