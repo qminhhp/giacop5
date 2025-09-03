@@ -6,11 +6,11 @@ export interface PrayerCardProps {
   title: string;
   points: number;
   timeLimit: string;
-  type: 'checkbox' | 'counter' | 'radio';
-  initialValue?: number | boolean;
+  type: 'checkbox' | 'counter' | 'radio' | 'dual-checkbox';
+  initialValue?: number | boolean | { morning: boolean; evening: boolean };
   maxValue?: number;
   options?: string[];
-  onValueChange?: (value: number | boolean) => void;
+  onValueChange?: (value: number | boolean | { morning: boolean; evening: boolean }) => void;
 }
 
 export const PrayerCard: React.FC<PrayerCardProps> = ({
@@ -26,6 +26,11 @@ export const PrayerCard: React.FC<PrayerCardProps> = ({
   const [checkboxValue, setCheckboxValue] = useState<boolean>(
     typeof initialValue === 'boolean' ? initialValue : false
   );
+  const [dualCheckboxValue, setDualCheckboxValue] = useState<{ morning: boolean; evening: boolean }>(
+    typeof initialValue === 'object' && initialValue !== null && 'morning' in initialValue 
+      ? initialValue as { morning: boolean; evening: boolean }
+      : { morning: false, evening: false }
+  );
   const [counterValue, setCounterValue] = useState<number>(
     typeof initialValue === 'number' ? initialValue : 1
   );
@@ -36,6 +41,12 @@ export const PrayerCard: React.FC<PrayerCardProps> = ({
   const handleCheckboxChange = (checked: boolean) => {
     setCheckboxValue(checked);
     onValueChange?.(checked);
+  };
+
+  const handleDualCheckboxChange = (type: 'morning' | 'evening', checked: boolean) => {
+    const newValue = { ...dualCheckboxValue, [type]: checked };
+    setDualCheckboxValue(newValue);
+    onValueChange?.(newValue);
   };
 
   const handleCounterChange = (newValue: number) => {
@@ -64,6 +75,36 @@ export const PrayerCard: React.FC<PrayerCardProps> = ({
             <label htmlFor={`prayer-${title}`} className="text-gray-700 text-sm">
               Sáng và chiều
             </label>
+          </div>
+        );
+
+      case 'dual-checkbox':
+        return (
+          <div className="space-y-3">
+            <div className="flex items-center space-x-3">
+              <input
+                type="checkbox"
+                id={`prayer-morning-${title}`}
+                checked={dualCheckboxValue.morning}
+                onChange={(e) => handleDualCheckboxChange('morning', e.target.checked)}
+                className="w-6 h-6"
+              />
+              <label htmlFor={`prayer-morning-${title}`} className="text-gray-700 text-sm">
+                Tích sáng (10 điểm)
+              </label>
+            </div>
+            <div className="flex items-center space-x-3">
+              <input
+                type="checkbox"
+                id={`prayer-evening-${title}`}
+                checked={dualCheckboxValue.evening}
+                onChange={(e) => handleDualCheckboxChange('evening', e.target.checked)}
+                className="w-6 h-6"
+              />
+              <label htmlFor={`prayer-evening-${title}`} className="text-gray-700 text-sm">
+                Tích chiều (10 điểm)
+              </label>
+            </div>
           </div>
         );
 
