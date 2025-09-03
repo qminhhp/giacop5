@@ -23,7 +23,7 @@ export const Header: React.FC = () => {
             </div>
             <div>
               <h1 className="text-sm font-medium text-gray-900">Bảng Thi Đua</h1>
-              <p className="text-xs text-gray-500">Thánh Đồ</p>
+              <p className="text-xs text-gray-500">Giacop 5</p>
             </div>
           </div>
           

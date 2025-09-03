@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MEMBERS, SCORING_ACTIVITIES } from '@/types';
-import { getMemberScore, saveScore, formatDate, getMemberActivities } from '@/utils/storage';
+import { getMemberScore, saveScore, formatDate } from '@/utils/storage';
 import { findMemberBySlug } from '@/utils/slug';
 
 export default function MemberScoring() {
@@ -16,31 +16,6 @@ export default function MemberScoring() {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [activities, setActivities] = useState<{ [key: string]: number | boolean | { morning: boolean; evening: boolean } }>({});
   const [totalPoints, setTotalPoints] = useState(0);
-  const [monthlyActivitiesCompleted, setMonthlyActivitiesCompleted] = useState<Set<string>>(new Set());
-
-  const checkMonthlyActivities = useCallback(async (date: string) => {
-    if (!member) return;
-    
-    const monthStr = date.substring(0, 7); // Get YYYY-MM format
-    const allActivities = await getMemberActivities(member.id);
-    
-    // Filter activities for the current month
-    const monthlyActivities = allActivities.filter(score => 
-      score.date.startsWith(monthStr)
-    );
-    
-    const completedSet = new Set<string>();
-    monthlyActivities.forEach(score => {
-      Object.entries(score.activities).forEach(([activityId, value]) => {
-        const activity = SCORING_ACTIVITIES.find(a => a.id === activityId && a.monthlyOnly);
-        if (activity && value === true) {
-          completedSet.add(activityId);
-        }
-      });
-    });
-    
-    setMonthlyActivitiesCompleted(completedSet);
-  }, [member]);
 
   const loadScoreForDate = useCallback(async (date: string) => {
     if (!member) return;
@@ -63,10 +38,7 @@ export default function MemberScoring() {
       });
       setActivities(defaultActivities);
     }
-    
-    // Check monthly activities
-    await checkMonthlyActivities(date);
-  }, [member, checkMonthlyActivities]);
+  }, [member]);
 
   const calculateTotalPoints = useCallback(() => {
     let total = 0;
@@ -110,12 +82,6 @@ export default function MemberScoring() {
   const handleActivityChange = async (activityId: string, value: number | boolean | { morning: boolean; evening: boolean }) => {
     const activity = SCORING_ACTIVITIES.find(a => a.id === activityId);
     if (!activity) return;
-
-    // Check if monthly activity is already completed
-    if (activity.monthlyOnly && monthlyActivitiesCompleted.has(activityId) && value === true) {
-      alert('Hoạt động này đã được hoàn thành trong tháng này!');
-      return;
-    }
 
     if (activity.weekdaysOnly && selectedDate) {
       const date = new Date(selectedDate);
@@ -163,10 +129,6 @@ export default function MemberScoring() {
 
       try {
         await saveScore(score);
-        // Refresh monthly activities check if this was a monthly activity
-        if (activity.monthlyOnly) {
-          await checkMonthlyActivities(selectedDate);
-        }
       } catch (error) {
         console.error('Auto-save error:', error);
       }
@@ -176,6 +138,27 @@ export default function MemberScoring() {
   const handleDateChange = (date: string) => {
     setSelectedDate(date);
     loadScoreForDate(date);
+  };
+
+  const navigateDate = (direction: 'prev' | 'next') => {
+    const currentDate = new Date(selectedDate);
+    const newDate = new Date(currentDate);
+    
+    if (direction === 'prev') {
+      newDate.setDate(currentDate.getDate() - 1);
+    } else {
+      newDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    const newDateString = formatDate(newDate);
+    const today = formatDate(new Date());
+    
+    // Don't allow navigation to future dates
+    if (direction === 'next' && newDateString > today) {
+      return;
+    }
+    
+    handleDateChange(newDateString);
   };
 
 
@@ -225,26 +208,52 @@ export default function MemberScoring() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Chọn ngày
               </label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => handleDateChange(e.target.value)}
-                max={formatDate(new Date())}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
-              />
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => navigateDate('prev')}
+                  className="p-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  title="Ngày trước"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => handleDateChange(e.target.value)}
+                  max={formatDate(new Date())}
+                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                />
+                <button
+                  onClick={() => navigateDate('next')}
+                  disabled={selectedDate >= formatDate(new Date())}
+                  className="p-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+                  title="Ngày sau"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-3">
-              {SCORING_ACTIVITIES.map(activity => (
-                <div key={activity.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                  <div className="mb-3">
-                    <h3 className="font-medium text-gray-900 text-sm">{activity.name}</h3>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {activity.points} điểm
-                      {activity.maxPointsPerDay && ` • Tối đa ${activity.maxPointsPerDay}/ngày`}
-                      {activity.maxPointsPerMonth && ` • Tối đa ${activity.maxPointsPerMonth}/tháng`}
-                    </p>
-                  </div>
+            {/* Daily Goals Section */}
+            <div className="mb-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-500">
+                📅 Nhiệm vụ ngày
+              </h2>
+              <div className="space-y-3">
+                {SCORING_ACTIVITIES.filter(activity => !activity.monthlyOnly).map(activity => (
+                  <div key={activity.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                    <div className="mb-3">
+                      <h3 className="font-medium text-gray-900 text-sm">{activity.name}</h3>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {activity.points} điểm
+                        {activity.maxPointsPerDay && ` • Tối đa ${activity.maxPointsPerDay}/ngày`}
+                        {activity.weekdaysOnly && ` • Chỉ các ngày trong tuần`}
+                      </p>
+                    </div>
 
                   <div>
                     {activity.type === 'checkbox' && (
@@ -357,9 +366,46 @@ export default function MemberScoring() {
                         ))}
                       </div>
                     )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+
+            {/* Monthly Goals Section */}
+            <div className="mb-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b-2 border-green-500">
+                📆 Nhiệm vụ tháng
+              </h2>
+              <div className="space-y-3">
+                {SCORING_ACTIVITIES.filter(activity => activity.monthlyOnly).map(activity => (
+                  <div key={activity.id} className="bg-green-50 border border-green-200 rounded-lg p-4 shadow-sm">
+                    <div className="mb-3">
+                      <h3 className="font-medium text-gray-900 text-sm">{activity.name}</h3>
+                      <p className="text-xs text-green-600 mt-1">
+                        {activity.points} điểm
+                        {activity.maxPointsPerMonth && ` • Tối đa ${activity.maxPointsPerMonth}/tháng`}
+                      </p>
+                    </div>
+
+                    <div>
+                      {activity.type === 'checkbox' && (
+                        <label className="flex items-center p-2 rounded-lg cursor-pointer hover:bg-green-100">
+                          <input
+                            type="checkbox"
+                            checked={!!activities[activity.id]}
+                            onChange={(e) => handleActivityChange(activity.id, e.target.checked)}
+                            className="w-5 h-5"
+                          />
+                          <span className="ml-3 text-sm text-gray-700 font-medium">
+                            Hoàn thành
+                          </span>
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
           </div>

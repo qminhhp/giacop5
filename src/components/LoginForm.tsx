@@ -31,7 +31,7 @@ export const LoginForm: React.FC = () => {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Bảng Thi Đua Thánh Đồ
+            Bảng Thi Đua Giacop 5
           </h1>
           <p className="text-gray-600">
             Khu vực trưởng Hội Thánh của Đức Chúa Trời

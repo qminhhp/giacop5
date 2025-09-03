@@ -85,7 +85,7 @@ export default function Home() {
             <div className="p-4 bg-blue-600 text-white">
               <div className="flex items-center justify-between mb-3">
                 <h1 className="text-lg sm:text-xl font-semibold">
-                  Bảng Thi Đua Thánh Đồ
+                  Bảng Thi Đua Giacop 5
                 </h1>
               </div>
               
