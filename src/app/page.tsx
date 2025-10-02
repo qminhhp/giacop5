@@ -2,38 +2,41 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MEMBERS, Member } from '@/types';
+import { Member } from '@/types';
 import { getMemberTotalScore } from '@/utils/storage';
 import { createSlug } from '@/utils/slug';
 import { ActivityDetailsModal } from '@/components/ActivityDetailsModal';
+import { useFilteredMembers } from '@/hooks/useFilteredMembers';
 
 export default function Home() {
   const [memberScores, setMemberScores] = useState<{ [key: string]: number }>({});
   const [currentMonth, setCurrentMonth] = useState<string>('');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const filteredMembers = useFilteredMembers();
 
   useEffect(() => {
     const today = new Date();
     const monthStr = today.toISOString().substring(0, 7);
     setCurrentMonth(monthStr);
     loadScoresForMonth(monthStr);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredMembers]);
 
   const loadScoresForMonth = async (monthStr: string) => {
     const scores: { [key: string]: number } = {};
-    
+
     // Load scores for all members in parallel
-    const scorePromises = MEMBERS.map(async (member) => {
+    const scorePromises = filteredMembers.map(async (member) => {
       const score = await getMemberTotalScore(member.id, monthStr);
       return { memberId: member.id, score };
     });
-    
+
     const results = await Promise.all(scorePromises);
     results.forEach(({ memberId, score }) => {
       scores[memberId] = score;
     });
-    
+
     setMemberScores(scores);
   };
 
@@ -104,7 +107,7 @@ export default function Home() {
                     {getCurrentMonthName()}
                   </p>
                   <p className="text-blue-100 text-sm">
-                    {MEMBERS.length} thành viên
+                    {filteredMembers.length} thành viên
                   </p>
                 </div>
                 
@@ -125,7 +128,7 @@ export default function Home() {
             </div>
             
             <div className="divide-y divide-gray-200">
-              {MEMBERS
+              {filteredMembers
                 .sort((a, b) => (memberScores[b.id] || 0) - (memberScores[a.id] || 0))
                 .map((member, index) => (
                   <Link 

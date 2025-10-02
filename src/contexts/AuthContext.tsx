@@ -2,12 +2,14 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const PASSWORD = 'gc5ctcm';
+const PASSWORD_BASIC = 'gc5ctcm';
+const PASSWORD_FULL = 'giacop5ctcm';
 const PASSWORD_EXPIRY = 30 * 60 * 1000; // 30 minutes in milliseconds
 
 interface AuthContextType {
   isAuthenticated: boolean;
   isHydrated: boolean;
+  authLevel: 'basic' | 'full' | null;
   login: (password: string) => boolean;
   logout: () => void;
 }
@@ -24,16 +26,18 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [authLevel, setAuthLevel] = useState<'basic' | 'full' | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Check authentication status on client-side hydration
   useEffect(() => {
     const savedAuth = sessionStorage.getItem('site_auth');
     if (savedAuth) {
-      const { timestamp } = JSON.parse(savedAuth);
+      const { timestamp, level } = JSON.parse(savedAuth);
       const now = Date.now();
       if (now - timestamp < PASSWORD_EXPIRY) {
         setIsAuthenticated(true);
+        setAuthLevel(level);
       } else {
         sessionStorage.removeItem('site_auth');
       }
@@ -42,11 +46,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = (password: string): boolean => {
-    if (password === PASSWORD) {
+    let level: 'basic' | 'full' | null = null;
+
+    if (password === PASSWORD_BASIC) {
+      level = 'basic';
+    } else if (password === PASSWORD_FULL) {
+      level = 'full';
+    }
+
+    if (level) {
       setIsAuthenticated(true);
-      // Save authentication with timestamp
+      setAuthLevel(level);
+      // Save authentication with timestamp and level
       sessionStorage.setItem('site_auth', JSON.stringify({
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        level
       }));
       return true;
     }
@@ -55,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setIsAuthenticated(false);
+    setAuthLevel(null);
     sessionStorage.removeItem('site_auth');
   };
 
@@ -80,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isAuthenticated]);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isHydrated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isHydrated, authLevel, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

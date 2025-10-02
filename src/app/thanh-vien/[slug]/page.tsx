@@ -3,16 +3,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MEMBERS, SCORING_ACTIVITIES } from '@/types';
+import { SCORING_ACTIVITIES } from '@/types';
 import { getMemberScore, saveScore, formatDate } from '@/utils/storage';
 import { findMemberBySlug } from '@/utils/slug';
+import { useFilteredMembers } from '@/hooks/useFilteredMembers';
 
 export default function MemberScoring() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
-  
-  const [member] = useState(() => findMemberBySlug(slug, MEMBERS));
+  const filteredMembers = useFilteredMembers();
+
+  const [member] = useState(() => findMemberBySlug(slug, filteredMembers));
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [activities, setActivities] = useState<{ [key: string]: number | boolean | { morning: boolean; evening: boolean } }>({});
   const [totalPoints, setTotalPoints] = useState(0);
