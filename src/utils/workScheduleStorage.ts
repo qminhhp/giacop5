@@ -26,7 +26,34 @@ export const getMemberDaySchedule = async (
   memberId: string,
   date: string
 ): Promise<DaySchedule | null> => {
-  // Use localStorage only for now
+  // Try Supabase first
+  try {
+    const supabaseSchedule = await getMemberDayScheduleSupabase(memberId, date);
+    if (supabaseSchedule) {
+      // Update localStorage with Supabase data
+      const allSchedules = getAllSchedules();
+      let memberSchedule = allSchedules.find(s => s.memberId === memberId);
+
+      if (!memberSchedule) {
+        memberSchedule = { memberId, schedules: [] };
+        allSchedules.push(memberSchedule);
+      }
+
+      const existingIndex = memberSchedule.schedules.findIndex(s => s.date === date);
+      if (existingIndex >= 0) {
+        memberSchedule.schedules[existingIndex] = supabaseSchedule;
+      } else {
+        memberSchedule.schedules.push(supabaseSchedule);
+      }
+
+      saveAllSchedules(allSchedules);
+      return supabaseSchedule;
+    }
+  } catch (error) {
+    console.log('Supabase fetch failed, using localStorage');
+  }
+
+  // Fallback to localStorage
   const allSchedules = getAllSchedules();
   const memberSchedule = allSchedules.find(s => s.memberId === memberId);
   const localSchedule = memberSchedule?.schedules.find(s => s.date === date) || null;
@@ -40,6 +67,38 @@ export const getMemberSchedulesForWeek = async (
   startDate: string,
   endDate: string
 ): Promise<DaySchedule[]> => {
+  // Try Supabase first
+  try {
+    const supabaseSchedules = await getMemberSchedulesForWeekSupabase(memberId, startDate, endDate);
+    if (supabaseSchedules.length > 0) {
+      // Update localStorage with Supabase data
+      const allSchedules = getAllSchedules();
+      let memberSchedule = allSchedules.find(s => s.memberId === memberId);
+
+      if (!memberSchedule) {
+        memberSchedule = { memberId, schedules: [] };
+        allSchedules.push(memberSchedule);
+      }
+
+      // Merge Supabase schedules into localStorage
+      supabaseSchedules.forEach(supabaseSchedule => {
+        const existingIndex = memberSchedule!.schedules.findIndex(s => s.date === supabaseSchedule.date);
+        if (existingIndex >= 0) {
+          memberSchedule!.schedules[existingIndex] = supabaseSchedule;
+        } else {
+          memberSchedule!.schedules.push(supabaseSchedule);
+        }
+      });
+
+      memberSchedule.schedules.sort((a, b) => a.date.localeCompare(b.date));
+      saveAllSchedules(allSchedules);
+      return supabaseSchedules;
+    }
+  } catch (error) {
+    console.log('Supabase fetch failed, using localStorage');
+  }
+
+  // Fallback to localStorage
   const allSchedules = getAllSchedules();
   const memberSchedule = allSchedules.find(s => s.memberId === memberId);
 
@@ -82,6 +141,14 @@ export const saveMemberDaySchedule = async (
   memberSchedule.schedules.sort((a, b) => a.date.localeCompare(b.date));
 
   saveAllSchedules(allSchedules);
+
+  // Also save to Supabase
+  try {
+    await saveMemberDayScheduleSupabase(memberId, schedule);
+  } catch (error) {
+    console.error('Failed to save to Supabase:', error);
+    // Continue even if Supabase fails - localStorage is saved
+  }
 };
 
 // Get weekly schedule for a member (Sunday to Saturday)
