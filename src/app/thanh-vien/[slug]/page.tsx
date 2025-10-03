@@ -7,6 +7,10 @@ import { SCORING_ACTIVITIES } from '@/types';
 import { getMemberScore, saveScore, formatDate } from '@/utils/storage';
 import { findMemberBySlug } from '@/utils/slug';
 import { useFilteredMembers } from '@/hooks/useFilteredMembers';
+import { WorkSchedule } from '@/components/WorkSchedule';
+import { WeeklyScheduleView } from '@/components/WeeklyScheduleView';
+import { DaySchedule } from '@/types/workSchedule';
+import { getMemberDaySchedule, saveMemberDaySchedule, getWeeklySchedule } from '@/utils/workScheduleStorage';
 
 export default function MemberScoring() {
   const params = useParams();
@@ -19,6 +23,8 @@ export default function MemberScoring() {
   const [activities, setActivities] = useState<{ [key: string]: number | boolean | { morning: boolean; evening: boolean } }>({});
   const [totalPoints, setTotalPoints] = useState(0);
   const [monthlyActivitiesCompleted, setMonthlyActivitiesCompleted] = useState<Set<string>>(new Set());
+  const [workSchedule, setWorkSchedule] = useState<DaySchedule | null>(null);
+  const [weeklySchedules, setWeeklySchedules] = useState<DaySchedule[]>([]);
 
   const loadMonthlyActivitiesCompleted = useCallback(async (date: string) => {
     if (!member) return;
@@ -69,6 +75,14 @@ export default function MemberScoring() {
     
     // Load monthly activities status
     await loadMonthlyActivitiesCompleted(date);
+
+    // Load work schedule for the date
+    const schedule = await getMemberDaySchedule(member.id, date);
+    setWorkSchedule(schedule);
+
+    // Load weekly schedules
+    const weekSchedules = await getWeeklySchedule(member.id, date);
+    setWeeklySchedules(weekSchedules);
   }, [member, loadMonthlyActivitiesCompleted]);
 
   const calculateTotalPoints = useCallback(() => {
@@ -176,6 +190,21 @@ export default function MemberScoring() {
     loadScoreForDate(date);
   };
 
+  const handleWorkScheduleChange = async (schedule: DaySchedule) => {
+    if (!member) return;
+
+    try {
+      await saveMemberDaySchedule(member.id, schedule);
+      setWorkSchedule(schedule);
+
+      // Refresh weekly schedules
+      const weekSchedules = await getWeeklySchedule(member.id, selectedDate);
+      setWeeklySchedules(weekSchedules);
+    } catch (error) {
+      console.error('Error saving work schedule:', error);
+    }
+  };
+
   const navigateDate = (direction: 'prev' | 'next') => {
     const currentDate = new Date(selectedDate);
     const newDate = new Date(currentDate);
@@ -273,6 +302,30 @@ export default function MemberScoring() {
                 </button>
               </div>
             </div>
+
+            {/* Work Schedule Section */}
+            {selectedDate && (
+              <div className="mb-6">
+                <WorkSchedule
+                  memberId={member.id}
+                  date={selectedDate}
+                  schedule={workSchedule}
+                  onScheduleChange={handleWorkScheduleChange}
+                />
+              </div>
+            )}
+
+            {/* Weekly Schedule View Button */}
+            {selectedDate && (
+              <div className="mb-6">
+                <WeeklyScheduleView
+                  memberId={member.id}
+                  memberName={member.name}
+                  currentDate={selectedDate}
+                  schedules={weeklySchedules}
+                />
+              </div>
+            )}
 
             {/* Daily Goals Section */}
             <div className="mb-6">

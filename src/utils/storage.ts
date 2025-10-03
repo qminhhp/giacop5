@@ -77,97 +77,33 @@ export const saveScore = async (score: MemberScore): Promise<void> => {
 };
 
 export const getMemberScore = async (memberId: string, date: string): Promise<MemberScore | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('scores')
-      .select('*')
-      .eq('member_id', memberId)
-      .eq('date', date)
-      .single();
-    
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
-    
-    if (data) {
-      return {
-        memberId: data.member_id,
-        date: data.date,
-        activities: data.activities,
-        totalPoints: data.total_points
-      };
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error fetching member score from Supabase:', error);
-    // Fallback to localStorage
-    const scores = await getLocalScores();
-    return scores.find(s => s.memberId === memberId && s.date === date) || null;
-  }
+  // Use localStorage only for now (to avoid 406 errors from Supabase)
+  const scores = await getLocalScores();
+  return scores.find(s => s.memberId === memberId && s.date === date) || null;
 };
 
 
 export const getMemberActivities = async (memberId: string): Promise<MemberScore[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('scores')
-      .select('*')
-      .eq('member_id', memberId)
-      .order('date', { ascending: false });
-    
-    if (error) throw error;
-    
-    return data.map(score => ({
-      memberId: score.member_id,
-      date: score.date,
-      activities: score.activities,
-      totalPoints: score.total_points
-    }));
-  } catch (error) {
-    console.error('Error fetching member activities:', error);
-    // Fallback to localStorage
-    const scores = await getLocalScores();
-    return scores
-      .filter(s => s.memberId === memberId)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }
+  // Use localStorage only for now (to avoid 406 errors from Supabase)
+  const scores = await getLocalScores();
+  return scores
+    .filter(s => s.memberId === memberId)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };
 
 export const getMemberTotalScore = async (memberId: string, month?: string): Promise<number> => {
-  try {
-    let query = supabase
-      .from('scores')
-      .select('total_points')
-      .eq('member_id', memberId);
-    
-    if (month) {
-      // Calculate the last day of the month properly
-      const year = parseInt(month.split('-')[0]);
-      const monthNum = parseInt(month.split('-')[1]);
-      const lastDay = new Date(year, monthNum, 0).getDate();
-      
-      query = query.gte('date', `${month}-01`).lte('date', `${month}-${lastDay.toString().padStart(2, '0')}`);
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) throw error;
-    
-    return data.reduce((total, score) => total + score.total_points, 0);
-  } catch (error) {
-    console.error('Error fetching member total score from Supabase:', error);
-    // Fallback to localStorage
-    const scores = await getLocalScores();
-    return scores
-      .filter(s => {
-        if (s.memberId !== memberId) return false;
-        if (month) {
-          const scoreMonth = s.date.substring(0, 7);
-          return scoreMonth === month;
-        }
-        return true;
-      })
-      .reduce((total, score) => total + score.totalPoints, 0);
-  }
+  // Use localStorage only for now (to avoid 406 errors from Supabase)
+  const scores = await getLocalScores();
+  return scores
+    .filter(s => {
+      if (s.memberId !== memberId) return false;
+      if (month) {
+        const scoreMonth = s.date.substring(0, 7);
+        return scoreMonth === month;
+      }
+      return true;
+    })
+    .reduce((total, score) => total + score.totalPoints, 0);
 };
 
 // Helper function for localStorage fallback

@@ -7,6 +7,8 @@ import { getMemberTotalScore } from '@/utils/storage';
 import { createSlug } from '@/utils/slug';
 import { ActivityDetailsModal } from '@/components/ActivityDetailsModal';
 import { useFilteredMembers } from '@/hooks/useFilteredMembers';
+import { MigrationButton } from '@/components/MigrationButton';
+import { useAutoSync } from '@/hooks/useAutoSync';
 
 export default function Home() {
   const [memberScores, setMemberScores] = useState<{ [key: string]: number }>({});
@@ -14,6 +16,14 @@ export default function Home() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const filteredMembers = useFilteredMembers();
+
+  // Auto-sync from Supabase every 5 minutes
+  useAutoSync(() => {
+    // Reload scores when sync completes
+    if (currentMonth) {
+      loadScoresForMonth(currentMonth);
+    }
+  });
 
   useEffect(() => {
     const today = new Date();
@@ -126,7 +136,7 @@ export default function Home() {
                 </button>
               </div>
             </div>
-            
+
             <div className="divide-y divide-gray-200">
               {filteredMembers
                 .sort((a, b) => (memberScores[b.id] || 0) - (memberScores[a.id] || 0))
