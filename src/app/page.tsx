@@ -190,6 +190,12 @@ export default function Home() {
             </div>
             
             <div className="p-4 bg-gray-50 border-t">
+              <Link
+                href="/tong-ket"
+                className="block mb-3 p-3 bg-green-600 text-white text-center rounded-lg hover:bg-green-700 transition-colors font-medium"
+              >
+                📊 Xem Tổng Kết Tháng
+              </Link>
               <div className="flex justify-between items-center text-xs text-gray-500">
                 <span>
                   {isCurrentMonth() ? 'Tháng hiện tại' : 'Xem tháng trước'}
