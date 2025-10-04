@@ -34,7 +34,7 @@ export default function Home() {
     setCurrentMonth(monthStr);
     loadScoresForMonth(monthStr);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredMembers]);
+  }, []);
 
   const loadScoresForMonth = async (monthStr: string) => {
     const scores: { [key: string]: number } = {};

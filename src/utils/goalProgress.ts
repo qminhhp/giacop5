@@ -1,6 +1,24 @@
 import { MemberGoal, ActivityProgress, GoalProgress } from '@/types/goal';
 import { SCORING_ACTIVITIES } from '@/types';
 import { getScores } from '@/utils/storage';
+import { MemberScore } from '@/types';
+
+// Cache for scores to avoid loading multiple times
+let scoresCache: MemberScore[] | null = null;
+let scoresCacheTime: number = 0;
+const CACHE_DURATION = 5000; // 5 seconds cache
+
+// Get scores with caching
+const getCachedScores = async (): Promise<MemberScore[]> => {
+  const now = Date.now();
+  if (scoresCache && (now - scoresCacheTime) < CACHE_DURATION) {
+    return scoresCache;
+  }
+
+  scoresCache = await getScores();
+  scoresCacheTime = now;
+  return scoresCache;
+};
 
 // Calculate activity counts for a member in a given month
 export const calculateActivityProgress = async (
@@ -8,8 +26,8 @@ export const calculateActivityProgress = async (
   month: string,
   goal: MemberGoal
 ): Promise<GoalProgress> => {
-  // Get all scores for the member in the month
-  const allScores = await getScores();
+  // Get all scores for the member in the month (with caching)
+  const allScores = await getCachedScores();
   const monthScores = allScores.filter(
     score => score.memberId === memberId && score.date.startsWith(month)
   );
@@ -85,4 +103,10 @@ export const calculateActivityProgress = async (
     completedActivities,
     overallProgressPercentage
   };
+};
+
+// Clear the scores cache (useful when scores are updated)
+export const clearScoresCache = (): void => {
+  scoresCache = null;
+  scoresCacheTime = 0;
 };
