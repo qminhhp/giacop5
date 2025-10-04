@@ -13,6 +13,7 @@ import { DaySchedule } from '@/types/workSchedule';
 import { getMemberDaySchedule, saveMemberDaySchedule, getWeeklySchedule } from '@/utils/workScheduleStorage';
 import { GoalSetting } from '@/components/GoalSetting';
 import { GoalProgress } from '@/components/GoalProgress';
+import { useDebouncedSave } from '@/hooks/useDebouncedSave';
 
 export default function MemberScoring() {
   const params = useParams();
@@ -27,6 +28,8 @@ export default function MemberScoring() {
   const [monthlyActivitiesCompleted, setMonthlyActivitiesCompleted] = useState<Set<string>>(new Set());
   const [workSchedule, setWorkSchedule] = useState<DaySchedule | null>(null);
   const [weeklySchedules, setWeeklySchedules] = useState<DaySchedule[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null);
 
   const loadMonthlyActivitiesCompleted = useCallback(async (date: string) => {
     if (!member) return;
@@ -126,6 +129,21 @@ export default function MemberScoring() {
     calculateTotalPoints();
   }, [activities, calculateTotalPoints]);
 
+  // Debounced save function
+  const performSave = useCallback(async (scoreData: { memberId: string; date: string; activities: any; totalPoints: number }) => {
+    setIsSaving(true);
+    try {
+      await saveScore(scoreData);
+      setLastSavedTime(new Date());
+    } catch (error) {
+      console.error('Save error:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  }, []);
+
+  const { debouncedSave } = useDebouncedSave(performSave, 800);
+
   const handleActivityChange = async (activityId: string, value: number | boolean | { morning: boolean; evening: boolean }) => {
     const activity = SCORING_ACTIVITIES.find(a => a.id === activityId);
     if (!activity) return;
@@ -138,12 +156,12 @@ export default function MemberScoring() {
       }
     }
 
-    // Update activities state
+    // Update activities state immediately (optimistic update)
     const newActivities = {
       ...activities,
       [activityId]: value
     };
-    
+
     setActivities(newActivities);
 
     // Calculate new total points
@@ -165,7 +183,9 @@ export default function MemberScoring() {
       }
     });
 
-    // Auto-save immediately
+    setTotalPoints(newTotal);
+
+    // Debounced save
     if (member && selectedDate) {
       const score = {
         memberId: member.id,
@@ -174,15 +194,11 @@ export default function MemberScoring() {
         totalPoints: newTotal
       };
 
-      try {
-        await saveScore(score);
-        
-        // If this is a monthly activity, refresh the monthly activities completed status
-        if (activity && activity.monthlyOnly) {
-          await loadMonthlyActivitiesCompleted(selectedDate);
-        }
-      } catch (error) {
-        console.error('Auto-save error:', error);
+      debouncedSave(score);
+
+      // If this is a monthly activity, refresh the monthly activities completed status
+      if (activity && activity.monthlyOnly) {
+        await loadMonthlyActivitiesCompleted(selectedDate);
       }
     }
   };
@@ -248,9 +264,9 @@ export default function MemberScoring() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white shadow-sm">
           <div className="sticky top-0 z-10 bg-blue-600 text-white p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-3">
-                <Link 
+                <Link
                   href="/"
                   className="p-1 hover:bg-blue-700 rounded-full transition-colors"
                 >
@@ -267,6 +283,22 @@ export default function MemberScoring() {
                 <div className="text-xl font-bold">{totalPoints}</div>
                 <div className="text-blue-100 text-xs">điểm</div>
               </div>
+            </div>
+            {/* Save status indicator */}
+            <div className="flex items-center justify-end">
+              {isSaving ? (
+                <div className="flex items-center text-blue-100 text-xs">
+                  <svg className="animate-spin h-3 w-3 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Đang lưu...
+                </div>
+              ) : lastSavedTime ? (
+                <div className="text-blue-100 text-xs">
+                  ✓ Đã lưu {lastSavedTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              ) : null}
             </div>
           </div>
 

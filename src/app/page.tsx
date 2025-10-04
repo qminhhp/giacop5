@@ -152,30 +152,30 @@ export default function Home() {
               {filteredMembers
                 .sort((a, b) => (memberScores[b.id] || 0) - (memberScores[a.id] || 0))
                 .map((member, index) => (
-                  <Link 
+                  <Link
                     key={member.id}
                     href={`/thanh-vien/${createSlug(member.name)}`}
                     className="block hover:bg-gray-50 transition-colors active:bg-gray-100"
                   >
-                    <div className="flex items-center justify-between p-4">
-                      <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-between p-5 sm:p-4 min-h-[72px] sm:min-h-0">
+                      <div className="flex items-center space-x-4 flex-1 min-w-0 mr-3">
                         <div className="flex-shrink-0">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                          <div className={`w-10 h-10 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-base sm:text-sm font-medium ${
                             index === 0
-                              ? 'bg-yellow-100 text-yellow-800 ring-2 ring-yellow-400' 
-                              : index < 3 
-                              ? 'bg-yellow-50 text-yellow-700' 
+                              ? 'bg-yellow-100 text-yellow-800 ring-2 ring-yellow-400'
+                              : index < 3
+                              ? 'bg-yellow-50 text-yellow-700'
                               : 'bg-gray-100 text-gray-600'
                           }`}>
                             {index + 1}
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
+                          <p className="text-base sm:text-sm font-medium text-gray-900 truncate">
                             {member.name}
                           </p>
                           {memberGoals[member.id] && memberGoals[member.id].activityTargets.length > 0 && (
-                            <p className="text-xs text-gray-500 mt-0.5">
+                            <p className="text-sm sm:text-xs text-gray-500 mt-1 sm:mt-0.5">
                               {memberGoals[member.id].activityTargets.length} mục tiêu
                             </p>
                           )}
@@ -184,7 +184,7 @@ export default function Home() {
                       <div className="flex-shrink-0 flex items-center space-x-2">
                         <button
                           onClick={(e) => handlePointsClick(e, member)}
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium hover:opacity-80 transition-opacity ${
+                          className={`inline-flex items-center px-4 py-2 sm:px-3 sm:py-1 rounded-full text-base sm:text-sm font-medium hover:opacity-80 transition-opacity touch-manipulation ${
                             (memberScores[member.id] || 0) > 1500
                               ? 'bg-green-100 text-green-800'
                               : (memberScores[member.id] || 0) > 1000
@@ -196,7 +196,7 @@ export default function Home() {
                         >
                           {memberScores[member.id] || 0}
                         </button>
-                        <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-6 h-6 sm:w-5 sm:h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                         </svg>
                       </div>
