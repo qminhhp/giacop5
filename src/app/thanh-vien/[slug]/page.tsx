@@ -130,7 +130,12 @@ export default function MemberScoring() {
   }, [activities, calculateTotalPoints]);
 
   // Debounced save function
-  const performSave = useCallback(async (scoreData: { memberId: string; date: string; activities: any; totalPoints: number }) => {
+  const performSave = useCallback(async (scoreData: {
+    memberId: string;
+    date: string;
+    activities: { [key: string]: number | boolean | { morning: boolean; evening: boolean } };
+    totalPoints: number
+  }) => {
     setIsSaving(true);
     try {
       await saveScore(scoreData);
