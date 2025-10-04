@@ -9,9 +9,12 @@ import { ActivityDetailsModal } from '@/components/ActivityDetailsModal';
 import { useFilteredMembers } from '@/hooks/useFilteredMembers';
 import { MigrationButton } from '@/components/MigrationButton';
 import { useAutoSync } from '@/hooks/useAutoSync';
+import { getMonthGoals } from '@/utils/goalStorage';
+import { MemberGoal } from '@/types/goal';
 
 export default function Home() {
   const [memberScores, setMemberScores] = useState<{ [key: string]: number }>({});
+  const [memberGoals, setMemberGoals] = useState<{ [key: string]: MemberGoal }>({});
   const [currentMonth, setCurrentMonth] = useState<string>('');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,6 +51,14 @@ export default function Home() {
     });
 
     setMemberScores(scores);
+
+    // Load goals for the month
+    const goals = await getMonthGoals(monthStr);
+    const goalsMap: { [key: string]: MemberGoal } = {};
+    goals.forEach(goal => {
+      goalsMap[goal.memberId] = goal;
+    });
+    setMemberGoals(goalsMap);
   };
 
   const handleMonthChange = (monthStr: string) => {
@@ -163,14 +174,19 @@ export default function Home() {
                           <p className="text-sm font-medium text-gray-900 truncate">
                             {member.name}
                           </p>
+                          {memberGoals[member.id] && memberGoals[member.id].activityTargets.length > 0 && (
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {memberGoals[member.id].activityTargets.length} mục tiêu
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="flex-shrink-0 flex items-center space-x-2">
                         <button
                           onClick={(e) => handlePointsClick(e, member)}
                           className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium hover:opacity-80 transition-opacity ${
-                            (memberScores[member.id] || 0) > 1500 
-                              ? 'bg-green-100 text-green-800' 
+                            (memberScores[member.id] || 0) > 1500
+                              ? 'bg-green-100 text-green-800'
                               : (memberScores[member.id] || 0) > 1000
                               ? 'bg-blue-100 text-blue-800'
                               : (memberScores[member.id] || 0) > 500

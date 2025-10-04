@@ -11,6 +11,8 @@ import { WorkSchedule } from '@/components/WorkSchedule';
 import { WeeklyScheduleView } from '@/components/WeeklyScheduleView';
 import { DaySchedule } from '@/types/workSchedule';
 import { getMemberDaySchedule, saveMemberDaySchedule, getWeeklySchedule } from '@/utils/workScheduleStorage';
+import { GoalSetting } from '@/components/GoalSetting';
+import { GoalProgress } from '@/components/GoalProgress';
 
 export default function MemberScoring() {
   const params = useParams();
@@ -269,6 +271,30 @@ export default function MemberScoring() {
           </div>
 
           <div className="p-4">
+            {/* Goal Setting Section */}
+            {selectedDate && (
+              <div className="mb-4">
+                <GoalSetting
+                  memberId={member.id}
+                  memberName={member.name}
+                  month={selectedDate.substring(0, 7)}
+                  onGoalUpdated={() => loadScoreForDate(selectedDate)}
+                />
+              </div>
+            )}
+
+            {/* Goal Progress Section */}
+            {selectedDate && (
+              <div className="mb-4">
+                <GoalProgress
+                  memberId={member.id}
+                  memberName={member.name}
+                  month={selectedDate.substring(0, 7)}
+                  currentDate={selectedDate}
+                />
+              </div>
+            )}
+
             <div className="mb-4 bg-gray-50 p-3 rounded-lg">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Chọn ngày
